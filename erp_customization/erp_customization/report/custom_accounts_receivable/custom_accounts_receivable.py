@@ -57,6 +57,19 @@ class ReceivablePayableReport(object):
 			"width": 140,
 			"options": "Performa Invoice",
 		})
+		columns.append({
+			"label": _("Sales Order"),
+			"fieldtype": "Link",
+			"fieldname": "so_no",
+			"width": 140,
+			"options": "Sales Order",
+		})
+		columns.append({
+			"label": _("Outstanding Amount"),
+			"fieldtype": "Float",
+			"fieldname": "outstanding_amount",
+			"width": 140
+		})
 
 		columns += [_("Due Date") + ":Date:80"]
 
@@ -189,7 +202,7 @@ class ReceivablePayableReport(object):
 					due_date = voucher_details.get(gle.voucher_no, {}).get("due_date", "")
 					bill_date = voucher_details.get(gle.voucher_no, {}).get("bill_date", "")
 
-					row += [gle.voucher_type, gle.voucher_no,getPINO(gle.voucher_type,gle.voucher_no), due_date]
+					row += [gle.voucher_type, gle.voucher_no,getPINO(gle.voucher_type,gle.voucher_no),getSalesOrderNo(gle.voucher_type,gle.voucher_no),getSalesOrderOutstanding(gle.voucher_type,gle.voucher_no), due_date]
 
 					# get supplier bill details
 					if args.get("party_type") == "Supplier":
@@ -539,10 +552,35 @@ def get_voucher_details(party_type, voucher_nos, dn_details):
 
 def getPINO(v_type,v_no):
 	if v_type=="Payment Entry":
-		pi_no=frappe.db.get_value("Payment Entry",v_no)
+		pi_no=frappe.db.get_value("Payment Entry",v_no,"performa_invoice")
 		if pi_no:
 			return pi_no
 		else:
 			return ''
 	else:
 		return ''
+
+def getSalesOrderNo(v_type,v_no):
+	if v_type=="Payment Entry":
+		so_no=frappe.db.get_value("Payment Entry",v_no,"sales_order")
+		if so_no:
+			return so_no
+		else:
+			return ''
+	else:
+		return ''
+
+
+def getSalesOrderOutstanding(v_type,v_no):
+	if v_type=="Payment Entry":
+		so_no=frappe.db.get_value("Payment Entry",v_no,"sales_order")
+		if so_no:
+			so_doc=frappe.get_doc("Sales Order",so_no)
+			if so_doc.advance_paid:
+				return flt(so_doc.rounded_total)-flt(so_doc.advance_paid)
+			else:
+				return flt(so_doc.rounded_total)
+		else:
+			return 0
+	else:
+		return 0
